@@ -1,0 +1,431 @@
+---
+title: "Procédure de désinfection des dispositifs médicaux (DM)"
+author: "Alexia Fontaine"
+date: "20/12/2021"
+output: 
+  flexdashboard::flex_dashboard:
+    theme:
+        bootswatch: flatly
+    source_code: embed
+      
+runtime: shiny
+---
+
+
+```{r setup, include=FALSE}
+
+# load data in 'global' chunk so it can be shared by all users of the dashboard
+
+library(dplyr)
+library(rmarkdown)
+
+
+sys.source("global.R", envir = knitr::knit_global())
+rsconnect.locale.cache
+
+```
+
+
+Inputs {.sidebar}
+=========================================
+>(Re)mobilisation des connaissances: application sur le LAVAGE MANUEL
+
+Cette procédure se limite aux Dispositifs Médicaux (DM): <br>
+- réutilisables <br>
+- semi-critiques <br>
+- souillés
+
+```{r}
+
+
+## Expressions reactives
+
+choices1 <- reactive({
+  
+  dataset %>% select(input$filter1)%>% unique()%>% arrange_(input$filter1)
+  
+})
+
+
+choices2 <- reactive({
+  
+  filter1_by(dataset, input$filter1, input$filter1val) %>% select(input$filter2) %>% unique() %>% arrange_(input$filter2)
+  
+}) 
+
+
+choices3 <- reactive({
+  
+  filter2_by(dataset, input$filter1, input$filter1val, input$filter2, input$filter2val) %>% select(input$filter3) %>% unique() %>% arrange_(input$filter3)
+  
+})
+
+
+## Critère_1
+
+selectInput('filter1', "1er critère:", choices = fields)
+uiOutput("filter1choice")
+checkboxInput("filter2req", "Ajouter un second filtre?")
+
+
+output$filter1choice <- renderUI(
+  selectInput ("filter1val", "Puis choisir la condition:", choices = choices1())
+)
+
+
+## Critère_2
+
+conditionalPanel(
+        condition = 'input.filter2req',
+        uiOutput("filter2val"),
+        uiOutput("filter2choice"),
+        checkboxInput("filter3req", "Ajouter un 3e filtre?")
+)
+
+
+output$filter2val <- renderUI({
+  
+    selectInput("filter2", "2ème critère:", choices = sort(fields[fields != input$filter1]))
+  
+})
+
+
+output$filter2choice <- renderUI(
+  selectInput ("filter2val", "Puis choisir la condition:", choices = choices2())
+)
+
+
+## Critère_3
+
+conditionalPanel(
+      condition = 'input.filter3req & input.filter2req',
+      uiOutput("filter3val"),
+      uiOutput("filter3choice")
+)
+
+
+output$filter3val <- renderUI({
+  
+    selectInput("filter3", "3ème critère:", choices = sort(fields[!fields %in% c(input$filter1, input$filter2)]))
+  
+})
+
+output$filter3choice <- renderUI(
+      selectInput ("filter3val", "Puis choisir la condition:", choices = choices3())
+)
+
+
+```
+
+
+Analyse {.storyboard}
+=========================================
+
+### **Etape 0 - Règles d'Hygiène et Sécurité** :<br> Prévention du risque infectieux pour limiter la transmission croisée, la contamination environnementale et le risque d'accident au sang ou chimique
+
+
+```{r}
+
+
+includeMarkdown('E0.md')
+
+filtered_data <- reactive({
+  
+  if (input$filter3req & input$filter2req) {
+    filter3_by(dataset, input$filter1, input$filter1val, input$filter2, input$filter2val, input$filter3, input$filter3val)
+  } else if (input$filter2req) {
+    filter2_by(dataset, input$filter1, input$filter1val, input$filter2, input$filter2val)
+  } else {
+    filter1_by(dataset, input$filter1, input$filter1val)
+  }
+})
+
+
+E0 <- reactive({
+    
+    filtered_data <- filtered_data()
+    
+      filtered_data%>%
+        
+        filter(etape == "E0")%>%
+        select(action1, recommandations.pratiques)
+     
+        
+})
+
+
+output$tbl0 <- DT :: renderDataTable({
+  
+    DT::datatable (E0(),options = list(searching = FALSE, paging = FALSE, rownames = FALSE))
+    
+})
+
+DT::dataTableOutput("tbl0")
+
+```
+
+***
+**Règles d'Hygiène et Sécurité - Objectifs**
+
+- <span style="border-bottom: 1px dotted #f5bf98;"> Local d'entretien </span> : Contrôler la sécurité de son activité
+
+- <span style="border-bottom: 1px dotted #88a2bf;"> Equipement </span> : <br>
+        - Préparer son plan de travail <br>
+        - Contrôler l'hygiène des mains <br>
+        - Gérer les déchets <br>
+
+- <span style="border-bottom: 1px dotted #f5e598;"> Personnel</span> : Assurer le protection de l'opérateur
+
+
+
+### **Etape 1 -  Prédesinfection** :<br> Le résultat de cette opération permet de limiter les micro-organismes présents au moment de l’opération.
+
+```{r}
+
+includeMarkdown('E1.md')
+
+
+E1 <- reactive({
+    
+    filtered_data <- filtered_data()
+    
+      filtered_data%>%
+        
+        filter(etape == "E1")%>%
+        select(Exemple.de.DM, recommandations.pratiques)
+     
+})
+
+
+output$tbl1 <- DT :: renderDataTable({
+  
+    DT::datatable (E1(),options = list(searching = FALSE, paging = FALSE, rownames = FALSE))
+    
+})
+
+
+DT::dataTableOutput("tbl1")
+
+```
+
+***
+**Prédesinfection - OBJECTIFS**
+
+- <span style="border-bottom: 1px dotted #88a2bf;"> Faciliter le nettoyage </span> <br>
+- <span style="border-bottom: 1px dotted #f5bf98;"> Abaisser le niveau de contamination </span><br>
+- <span style="border-bottom: 1px dotted #f5e598;">Protéger le personnel et l'environnement </span> <br>
+
+### **Etape 2 - Nettoyage** : <br> Opération d’entretien et de maintenance des DM
+
+
+```{r}
+
+
+includeMarkdown('E2.md')
+
+
+E2 <- reactive({
+    
+    filtered_data <- filtered_data()
+    
+      filtered_data%>%
+        
+        filter(etape == "E2")%>%
+        select(recommandations.pratiques,action1, action2)
+        
+})
+
+
+output$tbl2 <- DT :: renderDataTable({
+  
+    DT::datatable (E2(),options = list(searching = FALSE, paging = FALSE, rownames = FALSE))
+    
+})
+
+
+DT::dataTableOutput("tbl2")
+
+```
+
+***
+**Nettoyage - OBJECTIFS**
+
+- <span style="border-bottom: 1px dotted #88a2bf;"> Assurer un aspect agréable (notion de confort) et un niveau de propreté (notion d’hygiène).<br>
+- <span style="border-bottom: 1px dotted #88a2bf;">Eliminer les salissures </span>
+
+
+### **Etape 3 - Désinfection** :<br> Opération au résultat momentané permettant d’éliminer ou de tuer les micro-organismes et/ou d’inactiver les virus indésirables. 
+
+```{r}
+
+
+includeMarkdown('E3.md')
+
+E3 <- reactive({
+    
+    filtered_data <- filtered_data()
+    
+      filtered_data%>%
+        
+        filter(etape == "E3")%>%
+        select(recommandations.pratiques, action1, action2)
+     
+        
+})
+
+
+output$tbl3 <- DT :: renderDataTable({
+  
+    DT::datatable (E3(),options = list(searching = FALSE, paging = FALSE, rownames = FALSE))
+    
+})
+
+
+DT::dataTableOutput("tbl3")
+
+```
+
+*** 
+**Désinfection - OBJECTIFS**
+
+- <span style="border-bottom: 1px dotted #88a2bf;"> Détruire ou inactiver les micro-organismes </span>
+
+
+### **Etape 4 - Rinçage abondant**
+
+```{r}
+includeMarkdown('E4.md')
+
+E4 <- reactive({
+    
+    filtered_data <- filtered_data()
+    
+      filtered_data%>%
+        
+        filter(etape == "E4")%>%
+        select(recommandations.pratiques, action1, action2)
+     
+        
+})
+
+
+output$tbl4 <- DT :: renderDataTable({
+  
+    DT::datatable (E4(),options = list(searching = FALSE, paging = FALSE, rownames = FALSE))
+    
+})
+
+
+DT::dataTableOutput("tbl4")
+
+
+```
+
+***
+**Rinçage abondant - OBJECTIFS**
+
+- <span style="border-bottom: 1px dotted #88a2bf;"> Eliminer les résidus de produit désinfectant
+- <span style="border-bottom: 1px dotted #88a2bf;">Eviter la recontamination </span>
+
+
+### **Etape 5 - Stockage**
+
+
+```{r}
+
+
+includeMarkdown('E5.md')
+
+E5 <- reactive({
+    
+    filtered_data <- filtered_data()
+    
+      filtered_data%>%
+        
+        filter(etape == "E5")%>%
+        select(recommandations.pratiques, action1, action2)
+     
+        
+})
+
+
+output$tbl5 <- DT :: renderDataTable({
+  
+    DT::datatable (E5(),options = list(searching = FALSE, paging = FALSE, rownames = FALSE))
+    
+})
+
+
+DT::dataTableOutput("tbl5")
+
+
+```
+
+***
+**Stockage - OBJECTIFS**
+
+- <span style="border-bottom: 1px dotted #88a2bf;"> Protéger le matériel désinfecté de la contamination </span>
+
+A propos
+=========================================
+
+Row
+-----------------------------------------
+### Présentation
+
+> Dispositif pédagogique
+
+Inscrit dans une démarche socio-constructiviste (mais aussi constructiviste et connectiviste), plus globalement, cet outil entre dans la catégorie des **outils d'aide à la décision**. <br>
+
+Nous avons voulu tester et questionner la problématique du *réinvestissement des apprentissages dans une autre situation, à la fois semblables et différente* (Perrenoud)
+
+En effet, la multiplication des contenus implique un accompagnement dans l'appropriation d'une ressource numérique: tel est l'objectif de cette application qui vise à **remobiliser des connaissances sur une situation professionnelle.**
+
+L'objectif est donc bien de **préparer un temps d'échange entre l'apprenant et le formateur au regard d'une situation professionnelle.** <br>
+
+
+> Méthdologie
+
+Ce prototype se structure sur la notion de **scénario à embranchements** dans un contexte de transfert de connaissances : 
+
+- D'une part, le scénario permet une navigation à embranchements: **l’apprenant est dirigé sur un parcours selon ses choix de réponse.** 
+
+- D'autre part, ce parcours est encadré par **une démarche clairement explicitée (Analyse)**. <br>
+
+
+> Tableau de bord sous RMarkdown
+
+Le Rmarkdown est un langage de balises devenu populaire par l'essor du World Wide Web et du mouvement pour une informatique Libre. 
+
+Il permet de générer automatiquement des documents interactifs, mélangat texte mis en forme et résultats produits par du code R.
+
+
+
+Row
+-----------------------------------------
+### Références bibliographiques
+
+> Ressources pédagogiques
+
+IFSI Dreux
+Cours et Vidéos
+
+IFSI Grenoble		
+http://ifsi.fr/wp-content/uploads/2020/04/6-Entretien-DM.pdf
+
+CPIAS Occitanie		
+https://cpias-occitanie.fr/wp-content/uploads/2021/06/Traitement-des-DM-reutilisables.pdf
+
+
+> Webographie
+
+Perrenoud, 1999, Transférer ou mobiliser ses connaissances ?
+https://www.unige.ch/fapse/SSE/teachers/perrenoud/php_main/php_1999/1999_28.html#Heading1
+
+HPCI - Organisation d'une salle de soins 	https://www.hpci.ch/prevention/fiches-techniques/contenu/conception-et-organisation-dune-salle-de-soins
+
+CPIAS -	Guide entretien des locaux 	https://www.cpiasbfc.fr/guides/prec_standard/entretien_locaux/guide_entretien_locaux_19.pdf
+
+		
+Conseil Supérieur d'Hygiène publique de France,	GUIDE de bonnes pratiques	https://www.vie-publique.fr/sites/default/files/rapport/pdf/984001580.pdf
+		
