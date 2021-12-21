@@ -9,7 +9,7 @@ fields <- colnames(dataset)
 fields <- fields[!fields %in% c("etape", "Exemple.de.DM", "recommandations.pratiques", "action1", "action2")]
 
 
-## Filters : quosure and condition
+## Filters : quosure and condition - https://github.com/keithmcnulty/summer_olympics/blob/master/index.Rmd
 
 filter1_by <- function(df, f1, fv1) {
   filter_f1 <- quo(all_of(f1))
