@@ -21,3 +21,5 @@ Tableau de bord sous RMarkdown
 Le Rmarkdown est un langage de balises devenu populaire par l’essor du World Wide Web et du mouvement pour une informatique Libre.
 
 Il permet de générer automatiquement des documents interactifs, mélangat texte mis en forme et résultats produits par du code R.
+
+NB : le code sur les vues dynamiques provient de l'application de Keith McNulty - https://github.com/keithmcnulty/summer_olympics/blob/master/index.Rmd
